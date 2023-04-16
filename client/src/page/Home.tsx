@@ -4,7 +4,8 @@ import { useGlobalContext } from "../context";
 import { useNavigate } from "react-router-dom";
 
 const Home = () => {
-  const { contract, walletAddress, setShowAlert } = useGlobalContext();
+  const { contract, walletAddress, gameData, setShowAlert, setErrorMessage } =
+    useGlobalContext();
   const [playerName, setPlayerName] = useState("");
   const navigate = useNavigate();
 
@@ -12,7 +13,9 @@ const Home = () => {
     try {
       const playerExist = await contract?.isPlayer(walletAddress);
       if (!playerExist) {
-        await contract?.registerPlayer(playerName, playerName);
+        await contract?.registerPlayer(playerName, playerName, {
+          gasLimit: 200000,
+        });
         setShowAlert &&
           setShowAlert({
             status: true,
@@ -21,24 +24,25 @@ const Home = () => {
           });
       }
     } catch (error) {
-      setShowAlert &&
-        setShowAlert({
-          status: true,
-          type: "error",
-          message: "Some thing goes wrong",
-        });
+      setErrorMessage && setErrorMessage(error);
     }
   };
-  
+
   useEffect(() => {
     const checkForPlayerToken = async () => {
       const playerExist = await contract?.isPlayer(walletAddress);
       const playerTokenExist = await contract?.isPlayerToken(walletAddress);
       if (playerExist && playerTokenExist) {
-        navigate("/create-battle");}
+        navigate("/create-battle");
+      }
     };
     if (contract) checkForPlayerToken();
-  }, [contract,walletAddress]);
+  }, [contract, walletAddress]);
+
+  useEffect(() => {
+    if (gameData?.activeBattle)
+      navigate(`/battle/${gameData?.activeBattle?.name}`);
+  }, [gameData]);
 
   return (
     <div className="flex flex-col">
